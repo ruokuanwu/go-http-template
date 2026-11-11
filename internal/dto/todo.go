@@ -3,11 +3,12 @@ package dto
 import "example.com/go-http-template/internal/model"
 
 type CreateTodoRequest struct {
-	Title string `json:"title"`
+	// 标题去除首尾空白后必须为 1–200 个字符。
+	Title string `json:"title" example:"学习 Go"`
 }
 
 type UpdateTodoRequest struct {
-	Completed *bool `json:"completed" binding:"required"`
+	Completed *bool `json:"completed" binding:"required" example:"false"`
 }
 
 type TodoIDRequest struct {

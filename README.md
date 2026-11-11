@@ -33,7 +33,7 @@ make dev-api
 make dev-web
 ```
 
-打开 http://localhost:5173。前端 `/api` 请求代理到 `http://127.0.0.1:8080`，不需要配置 CORS。后端健康检查为 http://localhost:8080/api/health。
+打开 http://localhost:5173。前端 `/api` 请求代理到 `http://127.0.0.1:8080`，不需要配置 CORS。
 
 生产构建与本地运行：
 
@@ -54,6 +54,7 @@ GIN_MODE=release ./bin/server
 | `DB_PATH` | `data/app.db` | SQLite 文件路径，父目录自动创建 |
 | `WEB_DIR` | `web/dist` | 前端构建产物目录 |
 | `GIN_MODE` | Gin 默认模式 | 生产运行设置为 `release` |
+| `DEBUG` | `false` | 仅为 `true` 时注册 Swagger UI 与文档路由以及其他debug项 |
 
 首次启动自动迁移任务表。SQLite 文件不应提交到版本控制；停止服务后再复制数据库文件作为简单备份。修改后端监听端口时，也需调整前端 Vite 代理目标。
 
@@ -64,6 +65,7 @@ GIN_MODE=release ./bin/server
 | `make install` | 下载 Go 依赖并按 Bun 锁文件安装前端依赖 |
 | `make dev-api` | 启动后端 |
 | `make dev-web` | 启动 Vite 开发服务 |
+| `make swagger` | 使用固定版本 Swaggo 生成接口文档 |
 | `make build` | TypeScript 检查、前端生产构建、Go 构建 |
 | `make test` | 执行 Go 测试命令；模板当前没有测试文件 |
 | `make check` | Go vet 与前端类型检查、构建 |
@@ -77,7 +79,6 @@ GIN_MODE=release ./bin/server
 
 | 方法 | 路径 | 请求体 | 成功状态 |
 |---|---|---|---|
-| GET | `/api/health` | — | 200 |
 | GET | `/api/todos` | — | 200 |
 | POST | `/api/todos` | `{"title":"学习 Go"}` | 201 |
 | PATCH | `/api/todos/:id` | `{"completed":true}` | 200 |
@@ -102,11 +103,27 @@ GIN_MODE=release ./bin/server
 通用协议与输出函数位于 `internal/pkg/http`（包名 `httpx`）；业务请求、路径参数和响应 DTO 位于 `internal/dto`，不直接返回 GORM 模型。前端统一通过 `web/src/lib/api.ts` 解包 `data`，同时识别 HTTP 状态及业务错误码。HTML、静态资源不包装此协议。
 标题去除首尾空白后必须为 1–200 个字符。参数错误返回 400，记录不存在返回 404，内部错误返回 500 并记录日志。
 
+## Swagger 文档
+
+使用 Swaggo 注释生成 Swagger 2.0 文档（不是 OpenAPI 3），由 gin-swagger 提供在线查看与调试。
+
+```bash
+make swagger
+DEBUG=true make dev-api
+```
+
+访问 http://localhost:8080/swagger/index.html；原始文档为 http://localhost:8080/swagger/doc.json。页面直接请求当前站点的 `/api`，不写死主机地址；Swagger UI 不经过 Vite 代理，请从后端端口访问。
+
+接口注释位于 controller 和健康检查处理器，全局元信息位于 `cmd/server/main.go`。修改接口、DTO 或注释后执行 `make swagger`，将 `docs/docs.go`、`docs/swagger.json`、`docs/swagger.yaml` 一并提交。生成命令固定使用 `swag v1.16.6`，普通构建和 Docker 构建直接使用已有生成文件，无需安装生成工具。
+
+文档路由默认关闭，关闭时返回现有的 404 JSON 响应。生产环境保持关闭；如需开放，应通过网关限制访问。开关只控制路由注册，不提供认证。
+
 ## 目录结构
 
 ```text
 .
 ├── cmd/server/           # 依赖组装、启动与优雅退出
+├── docs/                 # Swaggo 生成的接口文档
 ├── internal/
 │   ├── config/           # 环境变量配置
 │   ├── controller/       # HTTP 入参、响应与错误映射

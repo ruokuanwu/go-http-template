@@ -1,0 +1,193 @@
+basePath: /api
+definitions:
+  dto.CreateTodoRequest:
+    properties:
+      title:
+        description: 标题去除首尾空白后必须为 1–200 个字符。
+        example: 学习 Go
+        type: string
+    type: object
+  dto.ListTodosResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.TodoResponse'
+        type: array
+    type: object
+  dto.TodoResponse:
+    properties:
+      completed:
+        type: boolean
+      id:
+        type: integer
+      title:
+        type: string
+    type: object
+  dto.UpdateTodoRequest:
+    properties:
+      completed:
+        example: false
+        type: boolean
+    required:
+    - completed
+    type: object
+  response.ErrorResponse:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+    type: object
+  response.Response-any:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+    type: object
+  response.Response-dto_ListTodosResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.ListTodosResponse'
+      message:
+        type: string
+    type: object
+  response.Response-dto_TodoResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.TodoResponse'
+      message:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: 任务列表 API。成功响应 code 为 0；失败响应仅包含 code 和 message。
+  title: Go HTTP Template API
+  version: "1.0"
+paths:
+  /todos:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response-dto_ListTodosResponse'
+        "500":
+          description: 10000：服务器内部错误
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: 获取任务列表
+      tags:
+      - todos
+    post:
+      consumes:
+      - application/json
+      description: 标题去除首尾空白后必须为 1–200 个字符。
+      parameters:
+      - description: 任务内容
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateTodoRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response.Response-dto_TodoResponse'
+        "400":
+          description: 10001：请求内容或标题无效
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: 10000：服务器内部错误
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: 创建任务
+      tags:
+      - todos
+  /todos/{id}:
+    delete:
+      parameters:
+      - description: 任务 ID
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功，data 为 {}
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response-any'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "400":
+          description: 10001：任务 ID 无效
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: 20001：任务不存在
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: 10000：服务器内部错误
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: 删除任务
+      tags:
+      - todos
+    patch:
+      consumes:
+      - application/json
+      description: completed 必填，false 也是有效值。
+      parameters:
+      - description: 任务 ID
+        in: path
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      - description: 完成状态
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateTodoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.Response-dto_TodoResponse'
+        "400":
+          description: 10001：任务 ID 或请求内容无效
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: 20001：任务不存在
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: 10000：服务器内部错误
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: 更新任务完成状态
+      tags:
+      - todos
+swagger: "2.0"

@@ -1,7 +1,7 @@
 GO ?= go
 BUN ?= bun
 
-.PHONY: install dev-api dev-web build test check clean docker-test docker-prod
+.PHONY: install dev-api dev-web swagger build test check clean docker-test docker-prod
 
 install:
 	$(GO) mod download
@@ -12,6 +12,9 @@ dev-api:
 
 dev-web:
 	cd web && $(BUN) run dev
+
+swagger:
+	$(GO) run github.com/swaggo/swag/cmd/swag@v1.16.6 init -g main.go -d cmd/server,internal/controller,internal/router,internal/dto,internal/pkg/response --parseInternal -o docs
 
 build:
 	cd web && $(BUN) run build

@@ -20,6 +20,10 @@ import (
 	"go.uber.org/zap"
 )
 
+// @title Go HTTP Template API
+// @version 1.0
+// @description 任务列表 API。成功响应 code 为 0；失败响应仅包含 code 和 message。
+// @BasePath /api
 func main() {
 	logger, err := logpkg.New()
 	if err != nil {
@@ -48,7 +52,7 @@ func run(logger *zap.Logger) error {
 	todos := controller.NewTodo(service.NewTodo(repository.NewTodo(database)))
 	server := &http.Server{
 		Addr:              cfg.Address,
-		Handler:           router.New(todos, logger, cfg.WebDir),
+		Handler:           router.New(todos, logger, cfg.WebDir, cfg.DEBUG),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,

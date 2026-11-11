@@ -8,7 +8,10 @@
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/server",
       "cwd": "${workspaceFolder}",
-      "env": { "HTTP_ADDR": ":8080" }
+      "env": {
+        "HTTP_ADDR": ":8080",
+        "DEBUG": "true"
+      }
     },
     {
       "name": "Web: Chrome (先运行 make dev-web)",
