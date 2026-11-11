@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from 'react-router/dom'
-import { PreferencesProvider } from '@/stores/preferences'
+import { useThemeSync } from '@/stores/preferences'
 import { router } from '@/router'
 
 const queryClient = new QueryClient({
@@ -8,9 +8,11 @@ const queryClient = new QueryClient({
 })
 
 export default function App() {
+  useThemeSync()
+
   return (
     <QueryClientProvider client={queryClient}>
-      <PreferencesProvider><RouterProvider router={router} /></PreferencesProvider>
+      <RouterProvider router={router} />
     </QueryClientProvider>
   )
 }

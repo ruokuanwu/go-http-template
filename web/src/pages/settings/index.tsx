@@ -2,7 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { usePreferences, type Theme } from '@/stores/preferences'
 
 export default function SettingsPage() {
-  const { theme, setTheme } = usePreferences()
+  const theme = usePreferences((state) => state.theme)
+  const setTheme = usePreferences((state) => state.setTheme)
   return (
     <section className="mx-auto max-w-xl space-y-6">
       <h1 className="text-2xl font-semibold">设置</h1>

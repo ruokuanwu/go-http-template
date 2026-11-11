@@ -1,28 +1,32 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useEffect } from 'react'
+import { create } from 'zustand'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 export type Theme = 'light' | 'dark' | 'system'
-const PreferencesContext = createContext<{ theme: Theme; setTheme: (theme: Theme) => void } | null>(null)
+
+type PreferencesState = {
+  theme: Theme
+  setTheme: (theme: Theme) => void
+}
 
 function readTheme(): Theme {
   const saved = localStorage.getItem('theme')
   return saved === 'light' || saved === 'dark' ? saved : 'system'
 }
 
-export function PreferencesProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(readTheme)
+export const usePreferences = create<PreferencesState>((set) => ({
+  theme: readTheme(),
+  setTheme: (theme) => {
+    localStorage.setItem('theme', theme)
+    set({ theme })
+  },
+}))
+
+export function useThemeSync() {
+  const theme = usePreferences((state) => state.theme)
   const systemDark = useMediaQuery('(prefers-color-scheme: dark)')
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark' || (theme === 'system' && systemDark))
-    localStorage.setItem('theme', theme)
   }, [theme, systemDark])
-
-  return <PreferencesContext value={{ theme, setTheme }}>{children}</PreferencesContext>
-}
-
-export function usePreferences() {
-  const preferences = useContext(PreferencesContext)
-  if (!preferences) throw new Error('usePreferences 必须在 PreferencesProvider 内使用')
-  return preferences
 }

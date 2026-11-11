@@ -5,7 +5,7 @@
 ## 技术栈
 
 - 后端：Go 1.25.5、Gin、GORM、SQLite、Zap、samber/oops。
-- 前端：Bun 1.3.6、React、TypeScript、Vite、React Router、TanStack Query、Tailwind CSS v4、shadcn/ui。
+- 前端：Bun 1.3.6、React、TypeScript、Vite、React Router、Zustand、TanStack Query、Tailwind CSS v4、shadcn/ui。
 - shadcn/ui 组件源码保存在前端工程中，可直接修改。
 
 ## 环境要求
@@ -161,7 +161,7 @@ web/src/
 ├── lib/                     # HTTP 请求、通用工具
 ├── pages/                   # dashboard、todos、settings、not-found
 ├── router/                  # 浏览器路由配置
-├── stores/                  # Context 主题偏好与本地持久化
+├── stores/                  # Zustand 客户端共享状态与主题持久化
 ├── types/                   # 共享 API 响应协议
 ├── App.tsx                  # Provider 与路由入口
 ├── index.css                # Tailwind 与浅色/深色主题
@@ -172,7 +172,7 @@ web/src/
 
 页面组合业务模块，业务模块依赖通用组件和请求工具，通用层不反向依赖业务。TanStack Query 统一管理任务缓存、加载及错误状态；增删改成功后失效并刷新共享查询，概览与任务页复用同一份数据。查询默认缓存新鲜期 30 秒、失败不自动重试，界面提供手动重试。
 
-主题偏好使用 React Context 与 `localStorage`，不进入服务端数据缓存；跟随系统模式监听系统主题变化。本轮保留 Todo 原有功能，暂未加入标题编辑、搜索筛选、认证或权限。资源目录在有实际资源时再创建，不预建空目录。
+客户端跨组件共享状态统一使用 Zustand，按业务拆分 store，组件通过选择器订阅所需字段；局部状态保留在组件内，服务端数据由 TanStack Query 管理，不重复存入 store。主题偏好使用 Zustand 与 `localStorage`，兼容已有 `theme` 存储值；应用入口统一同步页面主题，跟随系统模式监听系统主题变化。本轮保留 Todo 原有功能，暂未加入标题编辑、搜索筛选、认证或权限。资源目录在有实际资源时再创建，不预建空目录。
 
 调用关系：HTTP → controller → service → repository → SQLite。数据访问接口定义在使用方 service 中；未添加无用途的通用工具层。
 
