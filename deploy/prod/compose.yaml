@@ -1,0 +1,16 @@
+name: go-http-template-prod
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      GIN_MODE: release
+      DB_PATH: /app/data/app.db
+    volumes:
+      - sqlite-data:/app/data
+    restart: unless-stopped
+volumes:
+  sqlite-data:
