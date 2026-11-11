@@ -3,6 +3,7 @@ package router
 import (
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	_ "example.com/go-http-template/docs"
 	"example.com/go-http-template/internal/controller"
@@ -29,6 +30,15 @@ func New(todos *controller.Todo, logger *zap.Logger, webDir string, swaggerEnabl
 	r.Static("/assets", filepath.Join(webDir, "assets"))
 	r.GET("/", func(c *gin.Context) { c.File(filepath.Join(webDir, "index.html")) })
 	r.NoRoute(func(c *gin.Context) {
+		path := c.Request.URL.Path
+		if (c.Request.Method == http.MethodGet || c.Request.Method == http.MethodHead) &&
+			path != "/api" && !strings.HasPrefix(path, "/api/") &&
+			path != "/swagger" && !strings.HasPrefix(path, "/swagger/") &&
+			path != "/assets" && !strings.HasPrefix(path, "/assets/") &&
+			!strings.Contains(filepath.Base(path), ".") {
+			c.File(filepath.Join(webDir, "index.html"))
+			return
+		}
 		response.Fail(c, http.StatusNotFound, response.CodeRouteNotFound, "路由不存在")
 	})
 	return r

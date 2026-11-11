@@ -1,12 +1,4 @@
-type ApiResponse<T> = {
-  data: T
-  code: 0
-  message: string
-} | {
-  code: number
-  message: string
-  data?: never
-}
+import type { ApiResponse } from '@/types/api'
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number, public readonly code?: number) {

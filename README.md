@@ -1,11 +1,11 @@
 # Go HTTP 全栈模板
 
-最小的前后端同仓库模板，通过任务列表演示添加、查询、完成状态切换与删除，数据持久化到 SQLite。开发时 Vite 代理 API；生产时 Go 同时提供 API 和前端构建产物。
+前后端同仓库模板，包含概览、任务管理、外观设置及未找到页面。任务支持添加、查询、完成状态切换与删除，数据持久化到 SQLite；概览统计全部任务，主题支持浅色、深色与跟随系统。开发时 Vite 代理 API；生产时 Go 同时提供 API 和前端构建产物。
 
 ## 技术栈
 
 - 后端：Go 1.25.5、Gin、GORM、SQLite、Zap、samber/oops。
-- 前端：Bun 1.3.6、React、TypeScript、Vite、Tailwind CSS v4、shadcn/ui。
+- 前端：Bun 1.3.6、React、TypeScript、Vite、React Router、TanStack Query、Tailwind CSS v4、shadcn/ui。
 - shadcn/ui 组件源码保存在前端工程中，可直接修改。
 
 ## 环境要求
@@ -100,7 +100,7 @@ GIN_MODE=release ./bin/server
 | `10004` | 路由不存在 | 404 |
 | `20001` | 任务不存在 | 404 |
 
-通用协议与输出函数位于 `internal/pkg/http`（包名 `httpx`）；业务请求、路径参数和响应 DTO 位于 `internal/dto`，不直接返回 GORM 模型。前端统一通过 `web/src/lib/api.ts` 解包 `data`，同时识别 HTTP 状态及业务错误码。HTML、静态资源不包装此协议。
+通用协议与输出函数位于 `internal/pkg/http`（包名 `httpx`）；业务请求、路径参数和响应 DTO 位于 `internal/dto`，不直接返回 GORM 模型。前端统一通过 `web/src/lib/http.ts` 解包 `data`，同时识别 HTTP 状态及业务错误码。HTML、静态资源不包装此协议。
 标题去除首尾空白后必须为 1–200 个字符。参数错误返回 400，记录不存在返回 404，内部错误返回 500 并记录日志。
 
 ## Swagger 文档
@@ -143,6 +143,36 @@ DEBUG=true make dev-api
 ├── Makefile
 └── go.mod
 ```
+
+### 前端结构
+
+```text
+web/src/
+├── components/
+│   ├── ui/                  # shadcn/ui 基础组件
+│   └── common/              # 加载、空状态、错误与重试
+├── features/todos/
+│   ├── components/          # 任务面板与交互
+│   ├── hooks/               # 查询缓存与变更
+│   ├── api.ts               # Todo 接口
+│   └── types.ts             # Todo 类型
+├── hooks/                   # 通用媒体查询 Hook
+├── layouts/                 # 应用布局与导航
+├── lib/                     # HTTP 请求、通用工具
+├── pages/                   # dashboard、todos、settings、not-found
+├── router/                  # 浏览器路由配置
+├── stores/                  # Context 主题偏好与本地持久化
+├── types/                   # 共享 API 响应协议
+├── App.tsx                  # Provider 与路由入口
+├── index.css                # Tailwind 与浅色/深色主题
+└── main.tsx
+```
+
+路由：`/` 为概览，`/todos` 为任务管理，`/settings` 为外观设置，其余页面地址显示未找到页面。Go 对非 API、Swagger、静态资源的无扩展名 GET/HEAD 路径提供 SPA 入口，支持子页面直接访问和刷新；未知 API 仍返回 JSON 404。
+
+页面组合业务模块，业务模块依赖通用组件和请求工具，通用层不反向依赖业务。TanStack Query 统一管理任务缓存、加载及错误状态；增删改成功后失效并刷新共享查询，概览与任务页复用同一份数据。查询默认缓存新鲜期 30 秒、失败不自动重试，界面提供手动重试。
+
+主题偏好使用 React Context 与 `localStorage`，不进入服务端数据缓存；跟随系统模式监听系统主题变化。本轮保留 Todo 原有功能，暂未加入标题编辑、搜索筛选、认证或权限。资源目录在有实际资源时再创建，不预建空目录。
 
 调用关系：HTTP → controller → service → repository → SQLite。数据访问接口定义在使用方 service 中；未添加无用途的通用工具层。
 
