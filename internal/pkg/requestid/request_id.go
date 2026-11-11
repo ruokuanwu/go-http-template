@@ -1,6 +1,13 @@
 package requestid
 
-import "context"
+import (
+	"context"
+	"crypto/rand"
+)
+
+func New() string {
+	return rand.Text()
+}
 
 type contextKey struct{}
 

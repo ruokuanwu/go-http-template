@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 
 	"example.com/go-http-template/internal/model"
+	"example.com/go-http-template/internal/pkg/logger"
 )
 
 var ErrInvalidTitle = errors.New("标题必须为 1 到 200 个字符")
@@ -25,6 +26,7 @@ func NewTodo(repository TodoRepository) *Todo { return &Todo{repository: reposit
 func (s *Todo) List(ctx context.Context) ([]model.Todo, error) { return s.repository.List(ctx) }
 
 func (s *Todo) Create(ctx context.Context, title string) (model.Todo, error) {
+	logger.FromContext(ctx).Info("Creating todo")
 	title = strings.TrimSpace(title)
 	if title == "" || utf8.RuneCountInString(title) > 200 {
 		return model.Todo{}, ErrInvalidTitle
