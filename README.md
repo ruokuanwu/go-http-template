@@ -62,6 +62,7 @@ GIN_MODE=release ./bin/server
 
 | 命令 | 说明 |
 |---|---|
+| `make help` | 显示所有可用命令及说明 |
 | `make install` | 下载 Go 依赖并按 Bun 锁文件安装前端依赖 |
 | `make dev-api` | 启动后端 |
 | `make dev-web` | 启动 Vite 开发服务 |
@@ -70,10 +71,12 @@ GIN_MODE=release ./bin/server
 | `make test` | 执行 Go 测试命令；模板当前没有测试文件 |
 | `make check` | Go vet 与前端类型检查、构建 |
 | `make clean` | 删除构建产物，不删除数据库 |
+| `make docker-build` | 构建 Docker 镜像，默认标签为 `go-http-template:latest` |
 | `make docker-test` | 构建并后台启动测试环境 |
 | `make docker-prod` | 构建并后台启动生产环境 |
 
 也可通过 `make GO=/path/to/go BUN=/path/to/bun build` 指定工具路径。
+使用 `make docker-build IMAGE=my-app:v1` 自定义镜像名称和标签；该命令仅构建镜像，不启动容器。
 
 ## API
 
