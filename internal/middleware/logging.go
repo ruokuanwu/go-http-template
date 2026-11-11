@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	response "example.com/go-http-template/internal/pkg/response"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -21,6 +22,6 @@ func Logging(logger *zap.Logger) gin.HandlerFunc {
 func Recovery(logger *zap.Logger) gin.HandlerFunc {
 	return gin.CustomRecovery(func(c *gin.Context, recovered any) {
 		logger.Error("request panic", zap.Any("panic", recovered), zap.Stack("stack"))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "服务器内部错误"})
+		response.Fail(c, http.StatusInternalServerError, response.CodeInternalError, "服务器内部错误")
 	})
 }

@@ -81,10 +81,25 @@ GIN_MODE=release ./bin/server
 | GET | `/api/todos` | — | 200 |
 | POST | `/api/todos` | `{"title":"学习 Go"}` | 201 |
 | PATCH | `/api/todos/:id` | `{"completed":true}` | 200 |
-| DELETE | `/api/todos/:id` | — | 204 |
+| DELETE | `/api/todos/:id` | — | 200 |
 
 任务结构：`{"id":1,"title":"学习 Go","completed":false}`。
-列表及单任务响应分别为 `{"data":[...]}` 和 `{"data":{...}}`；健康检查为 `{"status":"ok"}`；错误为 `{"error":"错误信息"}`。
+所有 JSON API 成功响应固定包含 `data`、`code: 0` 和 `message: ""`；失败响应仅包含非 0 的 `code` 和公开的 `message`，不包含 `data`。业务错误码不替代 HTTP 状态码。
+
+- 列表：`{"data":{"items":[]},"code":0,"message":""}`，空列表始终为 `[]`。
+- 单条任务：`{"data":{"id":1,"title":"学习 Go","completed":false},"code":0,"message":""}`。
+- 删除：HTTP 200，`{"data":{},"code":0,"message":""}`。
+- 健康检查：`{"data":{"status":"ok"},"code":0,"message":""}`。
+- 错误示例：HTTP 404，`{"code":20001,"message":"任务不存在"}`。
+
+| 错误码 | 含义 | HTTP 状态 |
+|---|---|---|
+| `10000` | 内部错误 | 500 |
+| `10001` | 请求参数错误 | 400 |
+| `10004` | 路由不存在 | 404 |
+| `20001` | 任务不存在 | 404 |
+
+通用协议与输出函数位于 `internal/pkg/http`（包名 `httpx`）；业务请求、路径参数和响应 DTO 位于 `internal/dto`，不直接返回 GORM 模型。前端统一通过 `web/src/lib/api.ts` 解包 `data`，同时识别 HTTP 状态及业务错误码。HTML、静态资源不包装此协议。
 标题去除首尾空白后必须为 1–200 个字符。参数错误返回 400，记录不存在返回 404，内部错误返回 500 并记录日志。
 
 ## 目录结构
@@ -97,6 +112,8 @@ GIN_MODE=release ./bin/server
 │   ├── controller/       # HTTP 入参、响应与错误映射
 │   ├── db/               # SQLite 连接和自动迁移
 │   ├── middleware/       # Zap 请求日志与 panic 恢复
+│   ├── dto/              # 业务请求与响应
+│   ├── pkg/http/         # 通用 JSON 响应协议
 │   ├── model/            # 任务模型
 │   ├── repository/       # GORM 数据访问
 │   ├── router/           # API 路由与静态资源

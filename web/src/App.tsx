@@ -3,18 +3,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { request } from '@/lib/api'
 
 type Todo = { id: number; title: string; completed: boolean }
-
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(path, options)
-  if (!response.ok) {
-    const body = await response.json().catch(() => null) as { error?: string } | null
-    throw new Error(body?.error || `请求失败（${response.status}）`)
-  }
-  if (response.status === 204) return undefined as T
-  return response.json() as Promise<T>
-}
 
 export default function App() {
   const [todos, setTodos] = useState<Todo[]>([])
@@ -27,8 +18,8 @@ export default function App() {
     setLoading(true)
     setError('')
     try {
-      const result = await request<{ data: Todo[] }>('/api/todos')
-      setTodos(result.data)
+      const result = await request<{ items: Todo[] }>('/api/todos')
+      setTodos(result.items)
     } catch (error) {
       setError(error instanceof Error ? error.message : '请求失败，请稍后重试')
     } finally {
@@ -54,30 +45,30 @@ export default function App() {
     event.preventDefault()
     if (!title.trim() || busy) return
     void mutate(async () => {
-      const result = await request<{ data: Todo }>('/api/todos', {
+      const result = await request<Todo>('/api/todos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: title.trim() }),
       })
-      setTodos(previous => [...previous, result.data])
+      setTodos(previous => [...previous, result])
       setTitle('')
     })
   }
 
   function toggle(todo: Todo) {
     void mutate(async () => {
-      const result = await request<{ data: Todo }>(`/api/todos/${todo.id}`, {
+      const result = await request<Todo>(`/api/todos/${todo.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ completed: !todo.completed }),
       })
-      setTodos(previous => previous.map(item => item.id === todo.id ? result.data : item))
+      setTodos(previous => previous.map(item => item.id === todo.id ? result : item))
     })
   }
 
   function remove(id: number) {
     void mutate(async () => {
-      await request<void>(`/api/todos/${id}`, { method: 'DELETE' })
+      await request<Record<string, never>>(`/api/todos/${id}`, { method: 'DELETE' })
       setTodos(previous => previous.filter(item => item.id !== id))
     })
   }

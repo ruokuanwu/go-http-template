@@ -3,8 +3,9 @@ package controller
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
+	"example.com/go-http-template/internal/dto"
+	response "example.com/go-http-template/internal/pkg/response"
 	"example.com/go-http-template/internal/service"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -26,15 +27,13 @@ func (h *Todo) List(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": todos})
+	response.Success(c, http.StatusOK, dto.NewListTodosResponse(todos))
 }
 
 func (h *Todo) Create(c *gin.Context) {
-	var input struct {
-		Title string `json:"title"`
-	}
+	var input dto.CreateTodoRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的请求内容"})
+		response.Fail(c, http.StatusBadRequest, response.CodeInvalidRequest, "无效的请求内容")
 		return
 	}
 	todo, err := h.service.Create(c.Request.Context(), input.Title)
@@ -42,7 +41,7 @@ func (h *Todo) Create(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"data": todo})
+	response.Success(c, http.StatusCreated, dto.NewTodoResponse(todo))
 }
 
 func (h *Todo) Update(c *gin.Context) {
@@ -50,11 +49,9 @@ func (h *Todo) Update(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var input struct {
-		Completed *bool `json:"completed"`
-	}
-	if err := c.ShouldBindJSON(&input); err != nil || input.Completed == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "completed 必须为布尔值"})
+	var input dto.UpdateTodoRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.Fail(c, http.StatusBadRequest, response.CodeInvalidRequest, "completed 必须为布尔值")
 		return
 	}
 	todo, err := h.service.Update(c.Request.Context(), id, *input.Completed)
@@ -62,7 +59,7 @@ func (h *Todo) Update(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": todo})
+	response.Success(c, http.StatusOK, dto.NewTodoResponse(todo))
 }
 
 func (h *Todo) Delete(c *gin.Context) {
@@ -74,26 +71,26 @@ func (h *Todo) Delete(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	c.Status(http.StatusNoContent)
+	response.Success(c, http.StatusOK, struct{}{})
 }
 
 func parseID(c *gin.Context) (uint, bool) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, strconv.IntSize)
-	if err != nil || id == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的任务 ID"})
+	var input dto.TodoIDRequest
+	if err := c.ShouldBindUri(&input); err != nil {
+		response.Fail(c, http.StatusBadRequest, response.CodeInvalidRequest, "无效的任务 ID")
 		return 0, false
 	}
-	return uint(id), true
+	return input.ID, true
 }
 
 func (h *Todo) fail(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, service.ErrInvalidTitle):
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Fail(c, http.StatusBadRequest, response.CodeInvalidRequest, err.Error())
 	case errors.Is(err, gorm.ErrRecordNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "任务不存在"})
+		response.Fail(c, http.StatusNotFound, response.CodeTodoNotFound, "任务不存在")
 	default:
 		h.logger.Error("request failed", zap.Any("error", err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "服务器内部错误"})
+		response.Fail(c, http.StatusInternalServerError, response.CodeInternalError, "服务器内部错误")
 	}
 }
