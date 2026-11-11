@@ -14,7 +14,7 @@ import (
 
 func New(todos *controller.Todo, logger *zap.Logger, webDir string) *gin.Engine {
 	r := gin.New()
-	r.Use(middleware.Logging(logger), middleware.Recovery(logger))
+	r.Use(middleware.RequestID(), middleware.Logging(logger), middleware.Recovery())
 	_ = r.SetTrustedProxies(nil)
 	api := r.Group("/api")
 	api.GET("/health", func(c *gin.Context) { response.Success(c, http.StatusOK, dto.HealthResponse{Status: "ok"}) })

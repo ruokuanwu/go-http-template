@@ -12,6 +12,7 @@ import (
 	"example.com/go-http-template/internal/config"
 	"example.com/go-http-template/internal/controller"
 	"example.com/go-http-template/internal/db"
+	logpkg "example.com/go-http-template/internal/pkg/logger"
 	"example.com/go-http-template/internal/repository"
 	"example.com/go-http-template/internal/router"
 	"example.com/go-http-template/internal/service"
@@ -20,7 +21,7 @@ import (
 )
 
 func main() {
-	logger, err := zap.NewProduction()
+	logger, err := logpkg.New()
 	if err != nil {
 		panic(err)
 	}
@@ -44,7 +45,7 @@ func run(logger *zap.Logger) error {
 	}
 	defer connection.Close()
 
-	todos := controller.NewTodo(service.NewTodo(repository.NewTodo(database)), logger)
+	todos := controller.NewTodo(service.NewTodo(repository.NewTodo(database)))
 	server := &http.Server{
 		Addr:              cfg.Address,
 		Handler:           router.New(todos, logger, cfg.WebDir),

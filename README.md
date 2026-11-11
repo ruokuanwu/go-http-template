@@ -129,6 +129,16 @@ GIN_MODE=release ./bin/server
 
 调用关系：HTTP → controller → service → repository → SQLite。数据访问接口定义在使用方 service 中；未添加无用途的通用工具层。
 
+## 请求日志
+
+基础 Zap Logger 由 `internal/pkg/logger.New()` 显式初始化，进程结束时统一 `Sync()`。
+
+中间件顺序为 `RequestID → Logging → Recovery`：RequestID 只负责生成随机 ID，通过 `internal/pkg/requestid` 写入标准请求 context，并设置 `X-Request-ID` 响应头；不依赖 Logger，也不沿用客户端传入的 ID。Logging 从 context 读取 request ID，派生带 `request_id` 的子 Logger 并写回请求 context，然后在请求结束时记录访问日志。
+
+controller、service、repository 继续传递同一个 `context.Context`，需要日志时调用 `logger.FromContext(ctx)`；不向下传递 Gin Context。没有注入 Logger 的上下文返回无输出 Logger。内部错误在 controller 统一记录，repository 使用 oops 包装返回，避免重复日志。Recovery 的结构化日志也使用请求 Logger。
+
+`db.WithContext(ctx)` 保留上下文，但不会自动将 GORM SQL 日志接入 Zap；当前不增加 SQL 日志适配。
+
 ## 容器部署
 
 ```bash

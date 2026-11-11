@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"example.com/go-http-template/internal/dto"
+	"example.com/go-http-template/internal/pkg/logger"
 	response "example.com/go-http-template/internal/pkg/response"
 	"example.com/go-http-template/internal/service"
 	"github.com/gin-gonic/gin"
@@ -14,11 +15,10 @@ import (
 
 type Todo struct {
 	service *service.Todo
-	logger  *zap.Logger
 }
 
-func NewTodo(service *service.Todo, logger *zap.Logger) *Todo {
-	return &Todo{service: service, logger: logger}
+func NewTodo(service *service.Todo) *Todo {
+	return &Todo{service: service}
 }
 
 func (h *Todo) List(c *gin.Context) {
@@ -90,7 +90,7 @@ func (h *Todo) fail(c *gin.Context, err error) {
 	case errors.Is(err, gorm.ErrRecordNotFound):
 		response.Fail(c, http.StatusNotFound, response.CodeTodoNotFound, "任务不存在")
 	default:
-		h.logger.Error("request failed", zap.Any("error", err))
+		logger.FromContext(c.Request.Context()).Error("request failed", zap.Any("error", err))
 		response.Fail(c, http.StatusInternalServerError, response.CodeInternalError, "服务器内部错误")
 	}
 }
