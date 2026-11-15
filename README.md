@@ -23,13 +23,19 @@
 make install
 ```
 
-分别在两个终端启动：
+本地 HTTP 开发需要设置进程环境变量 `COOKIE_SECURE=false`（PowerShell：`$env:COOKIE_SECURE = "false"`）。默认值为 `true`，用于生产 HTTPS；仅修改 `.env` 不会影响 Go 进程。
+
+同时启动前后端：
+
+```bash
+make dev
+```
+
+也可分别在两个终端启动：
 
 ```bash
 make dev-api
 ```
-
-本地 HTTP 开发需要设置进程环境变量 `COOKIE_SECURE=false`（PowerShell：`$env:COOKIE_SECURE = "false"`）。默认值为 `true`，用于生产 HTTPS；仅修改 `.env` 不会影响 Go 进程。
 
 ```bash
 make dev-web
@@ -91,6 +97,7 @@ GIN_MODE=release ./bin/server
 |---|---|
 | `make help` | 显示所有可用命令及说明 |
 | `make install` | 下载 Go 依赖并按 Bun 锁文件安装前端依赖 |
+| `make dev` | 并行启动后端与 Vite 开发服务 |
 | `make dev-api` | 启动后端 |
 | `make dev-web` | 启动 Vite 开发服务 |
 | `make swagger` | 使用固定版本 Swaggo 生成接口文档 |

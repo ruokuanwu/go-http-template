@@ -2,11 +2,14 @@ GO ?= go
 BUN ?= bun
 IMAGE ?= go-http-template:latest
 
-.PHONY: install dev-api dev-web swagger build test check clean docker-build docker-test docker-prod help
+.PHONY: install dev dev-api dev-web swagger build test check clean docker-build docker-test docker-prod help
 
 install: ## 下载 Go 和前端依赖
 	$(GO) mod download
 	cd web && $(BUN) install --frozen-lockfile
+
+dev: ## 同时启动后端和前端开发服务
+	$(MAKE) -j2 dev-api dev-web
 
 dev-api: ## 启动后端
 	$(GO) run ./cmd/server
