@@ -26,6 +26,9 @@ func TestAuthenticationLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if database.Migrator().HasTable("todos") {
+		t.Fatal("removed todo table must not be created")
+	}
 	connection, err := database.DB()
 	if err != nil {
 		t.Fatal(err)
@@ -44,7 +47,7 @@ func TestAuthenticationLifecycle(t *testing.T) {
 	}
 	manager := newManager()
 	newHandler := func(sm *scs.SessionManager) http.Handler {
-		r := router.New(controller.NewTodo(service.NewTodo(repository.NewTodo(database))), controller.NewAuth(auth, sm), http.NewCrossOriginProtection(), zap.NewNop(), t.TempDir(), false)
+		r := router.New(controller.NewAuth(auth, sm), http.NewCrossOriginProtection(), zap.NewNop(), t.TempDir(), false)
 		r.GET("/api/private", middleware.RequireAuth(sm, auth), func(c *gin.Context) { c.Status(http.StatusOK) })
 		return middleware.Session(sm, r)
 	}
@@ -73,7 +76,21 @@ func TestAuthenticationLifecycle(t *testing.T) {
 		}
 	}
 	check(request("GET", "/api/private", "", nil, ""), 401)
-	check(request("GET", "/api/todos", "", nil, ""), 200)
+	for _, route := range []struct{ method, path string }{
+		{"GET", "/api/todos"},
+		{"POST", "/api/todos"},
+		{"PATCH", "/api/todos/1"},
+		{"DELETE", "/api/todos/1"},
+	} {
+		w := request(route.method, route.path, "", nil, "")
+		check(w, http.StatusNotFound)
+		var result struct {
+			Code int `json:"code"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil || result.Code != 10004 {
+			t.Fatalf("%s %s: expected route-not-found JSON, got %s", route.method, route.path, w.Body.String())
+		}
+	}
 	check(request("POST", "/api/auth/register", `{}`, nil, ""), 400)
 	check(request("POST", "/api/auth/register", `{"name":"Alex","email":"long@example.com","password":"`+strings.Repeat("😀", 65)+`"}`, nil, ""), 400)
 	check(request("POST", "/api/auth/login", `{}`, nil, "https://evil.example"), 403)

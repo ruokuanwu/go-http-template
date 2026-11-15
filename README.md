@@ -1,6 +1,6 @@
 # Go HTTP 全栈模板
 
-前后端同仓库模板，包含概览、任务管理、外观设置及未找到页面。任务支持添加、查询、完成状态切换与删除，数据持久化到 SQLite；概览统计全部任务，主题支持浅色、深色与跟随系统。开发时 Vite 代理 API；生产时 Go 同时提供 API 和前端构建产物。
+前后端同仓库模板，后端提供用户认证与持久化会话，主题支持浅色、深色与跟随系统。开发时 Vite 代理 API；生产时 Go 同时提供 API 和前端构建产物。后端 Todo 功能已移除；前端任务相关代码暂时保留，但不再有对应 API。
 
 ## 技术栈
 
@@ -68,7 +68,7 @@ GIN_MODE=release ./bin/server
 | `SESSION_IDLE_TIMEOUT` | `24h` | 空闲有效期，必须为正且不超过绝对有效期 |
 | `AUTH_TRUSTED_ORIGINS` | 空 | 逗号分隔的可信 Origin；同源部署不需要填写 |
 
-首次启动自动迁移任务、用户及持久化会话表。SQLite 文件不应提交到版本控制；停止服务后再复制数据库文件作为简单备份。修改后端监听端口时，也需调整前端 Vite 代理目标。
+首次启动自动迁移用户及持久化会话表，不再创建任务表；已有数据库中的任务表和数据不会自动删除。SQLite 文件不应提交到版本控制；停止服务后再复制数据库文件作为简单备份。修改后端监听端口时，也需调整前端 Vite 代理目标。
 
 ## 认证
 
@@ -87,7 +87,7 @@ GIN_MODE=release ./bin/server
 
 写接口通过 Go 标准库 CrossOriginProtection 检查浏览器来源。Vite 代理保留 Host，同源开发无需关闭检查。登录和注册共享每 IP 每分钟 10 次限制，单进程同时最多执行 2 个认证请求；多实例生产部署应在网关补充统一限流，并正确配置可信反向代理，不能直接信任任意转发 IP。
 
-前端在登录、退出和会话失效时更新缓存与路由，退出清理私有查询。Todo API 保持原有公开行为，演示数据不改为用户私有数据。新增私有 API 时使用 `middleware.RequireAuth`；前端路由守卫不能替代服务端授权。
+前端在登录、退出和会话失效时更新缓存与路由，退出清理私有查询。新增私有 API 时使用 `middleware.RequireAuth`；前端路由守卫不能替代服务端授权。
 
 测试覆盖注册、登录、重复邮箱、凭证错误、Session ID 轮换、重启恢复、退出撤销、过期、CSRF、限流和存储故障。Go 测试需要 CGO 与 C 编译器。
 
@@ -114,31 +114,19 @@ GIN_MODE=release ./bin/server
 
 ## API
 
-| 方法 | 路径 | 请求体 | 成功状态 |
-|---|---|---|---|
-| GET | `/api/todos` | — | 200 |
-| POST | `/api/todos` | `{"title":"学习 Go"}` | 201 |
-| PATCH | `/api/todos/:id` | `{"completed":true}` | 200 |
-| DELETE | `/api/todos/:id` | — | 200 |
-
-任务结构：`{"id":1,"title":"学习 Go","completed":false}`。
+当前提供的接口见上方认证表。原 `/api/todos` 及其子路径均返回路由不存在（404）。
 所有 JSON API 成功响应固定包含 `data`、`code: 0` 和 `message: ""`；失败响应仅包含非 0 的 `code` 和公开的 `message`，不包含 `data`。业务错误码不替代 HTTP 状态码。
 
-- 列表：`{"data":{"items":[]},"code":0,"message":""}`，空列表始终为 `[]`。
-- 单条任务：`{"data":{"id":1,"title":"学习 Go","completed":false},"code":0,"message":""}`。
-- 删除：HTTP 200，`{"data":{},"code":0,"message":""}`。
-- 健康检查：`{"data":{"status":"ok"},"code":0,"message":""}`。
-- 错误示例：HTTP 404，`{"code":20001,"message":"任务不存在"}`。
+- 未登录会话：`{"data":null,"code":0,"message":""}`。
+- 错误示例：HTTP 404，`{"code":10004,"message":"路由不存在"}`。
 
 | 错误码 | 含义 | HTTP 状态 |
 |---|---|---|
 | `10000` | 内部错误 | 500 |
 | `10001` | 请求参数错误 | 400 |
 | `10004` | 路由不存在 | 404 |
-| `20001` | 任务不存在 | 404 |
 
 通用协议与输出函数位于 `internal/pkg/http`（包名 `httpx`）；业务请求、路径参数和响应 DTO 位于 `internal/dto`，不直接返回 GORM 模型。前端统一通过 `web/src/lib/http.ts` 解包 `data`，同时识别 HTTP 状态及业务错误码。HTML、静态资源不包装此协议。
-标题去除首尾空白后必须为 1–200 个字符。参数错误返回 400，记录不存在返回 404，内部错误返回 500 并记录日志。
 
 ## Swagger 文档
 
@@ -168,7 +156,7 @@ DEBUG=true make dev-api
 │   ├── middleware/       # Zap 请求日志与 panic 恢复
 │   ├── dto/              # 业务请求与响应
 │   ├── pkg/http/         # 通用 JSON 响应协议
-│   ├── model/            # 任务模型
+│   ├── model/            # 用户模型
 │   ├── repository/       # GORM 数据访问
 │   ├── router/           # API 路由与静态资源
 │   └── service/          # 业务规则及数据访问接口
@@ -209,7 +197,7 @@ web/src/
 
 页面组合业务模块，业务模块依赖通用组件和请求工具，通用层不反向依赖业务。TanStack Query 统一管理任务缓存、加载及错误状态；增删改成功后失效并刷新共享查询，概览与任务页复用同一份数据。查询默认缓存新鲜期 30 秒、失败不自动重试，界面提供手动重试。
 
-认证与服务端会话由 TanStack Query 管理，局部状态保留在组件内；Dashboard 主题通过 Context 和 `localStorage` 管理。当前支持邮箱密码注册、登录和退出，尚未提供 OAuth、邮箱验证、密码找回或角色权限管理。Todo API 保留原有公开行为。资源目录在有实际资源时再创建，不预建空目录。
+认证与服务端会话由 TanStack Query 管理，局部状态保留在组件内；Dashboard 主题通过 Context 和 `localStorage` 管理。当前支持邮箱密码注册、登录和退出，尚未提供 OAuth、邮箱验证、密码找回或角色权限管理。前端任务模块暂时保留，其请求因后端接口移除而返回 404。资源目录在有实际资源时再创建，不预建空目录。
 
 调用关系：HTTP → controller → service → repository → SQLite。数据访问接口定义在使用方 service 中；未添加无用途的通用工具层。
 

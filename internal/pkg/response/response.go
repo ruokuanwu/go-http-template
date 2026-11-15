@@ -6,7 +6,6 @@ const (
 	CodeInternalError  = 10000
 	CodeInvalidRequest = 10001
 	CodeRouteNotFound  = 10004
-	CodeTodoNotFound   = 20001
 	CodeUnauthorized   = 30001
 	CodeCredentials    = 30002
 	CodeEmailTaken     = 30003

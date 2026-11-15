@@ -24,7 +24,7 @@ func Open(path string) (*gorm.DB, error) {
 		return nil, oops.Wrapf(err, "get database connection")
 	}
 	connection.SetMaxOpenConns(1)
-	if err := database.AutoMigrate(&model.Todo{}, &model.User{}); err != nil {
+	if err := database.AutoMigrate(&model.User{}); err != nil {
 		_ = connection.Close()
 		return nil, oops.Wrapf(err, "migrate database")
 	}

@@ -27,7 +27,7 @@ import (
 
 // @title Go HTTP Template API
 // @version 1.0
-// @description 任务列表 API。成功响应 code 为 0；失败响应仅包含 code 和 message。
+// @description 用户认证 API。成功响应 code 为 0；失败响应仅包含 code 和 message。
 // @BasePath /api
 func main() {
 	logger, err := logpkg.New()
@@ -57,7 +57,6 @@ func run(logger *zap.Logger) error {
 	}
 	defer connection.Close()
 
-	todos := controller.NewTodo(service.NewTodo(repository.NewTodo(database)))
 	authService, err := service.NewAuth(repository.NewUser(database))
 	if err != nil {
 		return err
@@ -91,7 +90,7 @@ func run(logger *zap.Logger) error {
 	auth := controller.NewAuth(authService, sessions)
 	server := &http.Server{
 		Addr:              cfg.Address,
-		Handler:           middleware.Session(sessions, router.New(todos, auth, protection, logger, cfg.WebDir, cfg.DEBUG)),
+		Handler:           middleware.Session(sessions, router.New(auth, protection, logger, cfg.WebDir, cfg.DEBUG)),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,

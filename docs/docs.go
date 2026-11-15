@@ -196,216 +196,9 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/todos": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "todos"
-                ],
-                "summary": "获取任务列表",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response-dto_ListTodosResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "10000：服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "标题去除首尾空白后必须为 1–200 个字符。",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "todos"
-                ],
-                "summary": "创建任务",
-                "parameters": [
-                    {
-                        "description": "任务内容",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.CreateTodoRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response-dto_TodoResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "10001：请求内容或标题无效",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "10000：服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/todos/{id}": {
-            "delete": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "todos"
-                ],
-                "summary": "删除任务",
-                "parameters": [
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "任务 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "删除成功，data 为 {}",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.Response-any"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "10001：任务 ID 无效",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "20001：任务不存在",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "10000：服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "description": "completed 必填，false 也是有效值。",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "todos"
-                ],
-                "summary": "更新任务完成状态",
-                "parameters": [
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "任务 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "完成状态",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.UpdateTodoRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/response.Response-dto_TodoResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "10001：任务 ID 或请求内容无效",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "20001：任务不存在",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "10000：服务器内部错误",
-                        "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
-        "dto.CreateTodoRequest": {
-            "type": "object",
-            "properties": {
-                "title": {
-                    "description": "标题去除首尾空白后必须为 1–200 个字符。",
-                    "type": "string",
-                    "example": "学习 Go"
-                }
-            }
-        },
-        "dto.ListTodosResponse": {
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.TodoResponse"
-                    }
-                }
-            }
-        },
         "dto.LoginRequest": {
             "type": "object",
             "properties": {
@@ -436,32 +229,6 @@ const docTemplate = `{
             "properties": {
                 "user": {
                     "$ref": "#/definitions/dto.UserResponse"
-                }
-            }
-        },
-        "dto.TodoResponse": {
-            "type": "object",
-            "properties": {
-                "completed": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.UpdateTodoRequest": {
-            "type": "object",
-            "required": [
-                "completed"
-            ],
-            "properties": {
-                "completed": {
-                    "type": "boolean",
-                    "example": false
                 }
             }
         },
@@ -502,20 +269,6 @@ const docTemplate = `{
                 }
             }
         },
-        "response.Response-dto_ListTodosResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/dto.ListTodosResponse"
-                },
-                "message": {
-                    "type": "string"
-                }
-            }
-        },
         "response.Response-dto_SessionResponse": {
             "type": "object",
             "properties": {
@@ -524,20 +277,6 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/dto.SessionResponse"
-                },
-                "message": {
-                    "type": "string"
-                }
-            }
-        },
-        "response.Response-dto_TodoResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/dto.TodoResponse"
                 },
                 "message": {
                     "type": "string"
@@ -554,7 +293,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api",
 	Schemes:          []string{},
 	Title:            "Go HTTP Template API",
-	Description:      "任务列表 API。成功响应 code 为 0；失败响应仅包含 code 和 message。",
+	Description:      "用户认证 API。成功响应 code 为 0；失败响应仅包含 code 和 message。",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

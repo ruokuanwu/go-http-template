@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func New(todos *controller.Todo, auth *controller.Auth, protection *http.CrossOriginProtection, logger *zap.Logger, webDir string, swaggerEnabled bool) *gin.Engine {
+func New(auth *controller.Auth, protection *http.CrossOriginProtection, logger *zap.Logger, webDir string, swaggerEnabled bool) *gin.Engine {
 	r := gin.New()
 	r.Use(middleware.RequestID(), middleware.Logging(logger), middleware.Recovery())
 	_ = r.SetTrustedProxies(nil)
@@ -31,10 +31,6 @@ func New(todos *controller.Todo, auth *controller.Auth, protection *http.CrossOr
 	login.POST("/login", limit, auth.Login)
 	login.GET("/session", auth.Session)
 	login.POST("/logout", auth.Logout)
-	api.GET("/todos", todos.List)
-	api.POST("/todos", todos.Create)
-	api.PATCH("/todos/:id", todos.Update)
-	api.DELETE("/todos/:id", todos.Delete)
 	if swaggerEnabled {
 		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.URL("doc.json")))
 	}
