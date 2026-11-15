@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { getRouteApi, Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { getRouteApi, Link, Outlet, useNavigate, useRouter } from "@tanstack/react-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpRight, ChevronUp, LayoutDashboard, Loader2, LogOut, Menu, Orbit, Settings, UserRound, X } from "lucide-react";
-import { authClient } from "@/features/auth/auth-client";
+import { authClient, updateSession, useSession } from "@/features/auth/auth-client";
 import { ThemeContext, type Theme } from "@/features/settings/theme-context";
 
 function readTheme(): { theme: Theme; error: string | null } {
@@ -17,17 +17,21 @@ function readTheme(): { theme: Theme; error: string | null } {
 export function DashboardLayout() {
   const { authenticatedSession: session } = getRouteApi("/dashboard").useRouteContext();
   const navigate = useNavigate();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const sessionQuery = useSession();
   const [preference, setPreference] = useState(readTheme);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const logout = useMutation({
-    mutationFn: async () => {
-      const result = await authClient.signOut();
-      if (result.error) throw new Error(result.error.message || "Unable to log out. Please try again.");
+    mutationFn: authClient.logout,
+    onSuccess: async () => {
+      await updateSession(queryClient, null);
+      await navigate({ to: "/login", replace: true });
+      await router.invalidate();
     },
-    onSuccess: async () => { await navigate({ to: "/login" }); },
   });
 
   useEffect(() => {
@@ -82,7 +86,7 @@ export function DashboardLayout() {
         </aside>
         <div className="min-w-0 md:pl-60">
           <header className="flex h-16 items-center justify-between border-b border-border px-5 sm:px-8"><div className="flex items-center gap-3"><button aria-label="Open navigation" aria-expanded={sidebarOpen} aria-controls="dashboard-sidebar" className="md:hidden" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button><span className="text-xs text-muted-foreground">Workspace <span className="mx-2 text-border">/</span> Personal</span></div><Link to="/" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">Back to website <ArrowUpRight size={13} /></Link></header>
-          <main id="dashboard-content" tabIndex={-1} className="mx-auto max-w-[1280px] p-5 outline-none sm:p-8 lg:p-12"><Outlet /></main>
+          <main id="dashboard-content" tabIndex={-1} className="mx-auto max-w-[1280px] p-5 outline-none sm:p-8 lg:p-12">{sessionQuery.isError && <p role="alert" className="mb-4 text-sm text-destructive">Unable to check your session. <button className="underline" onClick={() => void sessionQuery.refetch()}>Retry</button></p>}<Outlet /></main>
         </div>
       </div>
     </ThemeContext.Provider>

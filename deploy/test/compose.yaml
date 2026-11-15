@@ -9,6 +9,7 @@ services:
     environment:
       GIN_MODE: release
       DB_PATH: /app/data/app.db
+      COOKIE_SECURE: "false"
     volumes:
       - sqlite-data:/app/data
     restart: unless-stopped

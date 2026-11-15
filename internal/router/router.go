@@ -15,11 +15,22 @@ import (
 	"go.uber.org/zap"
 )
 
-func New(todos *controller.Todo, logger *zap.Logger, webDir string, swaggerEnabled bool) *gin.Engine {
+func New(todos *controller.Todo, auth *controller.Auth, protection *http.CrossOriginProtection, logger *zap.Logger, webDir string, swaggerEnabled bool) *gin.Engine {
 	r := gin.New()
 	r.Use(middleware.RequestID(), middleware.Logging(logger), middleware.Recovery())
 	_ = r.SetTrustedProxies(nil)
 	api := r.Group("/api")
+	api.Use(middleware.CSRF(protection))
+	login := api.Group("/auth")
+	login.Use(func(c *gin.Context) {
+		c.Header("Cache-Control", "no-store")
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16*1024)
+	})
+	limit := middleware.AuthRateLimit()
+	login.POST("/register", limit, auth.Register)
+	login.POST("/login", limit, auth.Login)
+	login.GET("/session", auth.Session)
+	login.POST("/logout", auth.Logout)
 	api.GET("/todos", todos.List)
 	api.POST("/todos", todos.Create)
 	api.PATCH("/todos/:id", todos.Update)

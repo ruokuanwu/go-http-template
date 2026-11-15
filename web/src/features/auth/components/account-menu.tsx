@@ -1,14 +1,19 @@
-import { Link } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { Link, useRouter } from "@tanstack/react-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LogOut, Loader2 } from "lucide-react";
-import { authClient } from "../auth-client";
+import { authClient, updateSession, useSession } from "../auth-client";
 
 export function AccountMenu({ onNavigate }: { onNavigate: () => void }) {
-  const { data: session, isPending, error, refetch } = authClient.useSession();
+  const { data: session, isPending, error, refetch } = useSession();
+  const queryClient = useQueryClient();
+  const router = useRouter();
   const logout = useMutation({
-    mutationFn: async () => {
-      const result = await authClient.signOut();
-      if (result.error) throw new Error(result.error.message || "Unable to log out. Please try again.");
+    mutationFn: authClient.logout,
+    onSuccess: async () => {
+      await updateSession(queryClient, null);
+      onNavigate();
+      await router.navigate({ to: "/login", replace: true });
+      await router.invalidate();
     },
   });
 

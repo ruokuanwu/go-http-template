@@ -13,7 +13,7 @@ export default defineConfig({
     tailwindcss(),
   ],
   build: {
-    outDir: "../dist/web",
+    outDir: "dist",
     emptyOutDir: true,
   },
   resolve: {
@@ -24,8 +24,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:3000",
-        changeOrigin: true,
+        target: "http://127.0.0.1:8080",
       },
     },
   },

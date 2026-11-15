@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Orbit, ShieldCheck } from "lucide-react";
 import { z } from "zod";
-import { authClient } from "../auth-client";
+import { authClient, updateSession } from "../auth-client";
 
 type AuthMode = "login" | "register";
 type Field = "name" | "email" | "password";
@@ -19,17 +19,21 @@ const registrationSchema = credentialsSchema.extend({
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const registering = mode === "register";
   const navigate = useNavigate();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const mutation = useMutation({
     mutationFn: async (values: { name: string; email: string; password: string }) => {
-      const result = registering
-        ? await authClient.signUp.email(values)
-        : await authClient.signIn.email({ email: values.email, password: values.password });
-      if (result.error) throw new Error(result.error.message || "Unable to authenticate. Please try again.");
-      return result.data;
+      return registering
+        ? authClient.register(values)
+        : authClient.login({ email: values.email, password: values.password });
     },
-    onSuccess: async () => { await navigate({ to: "/dashboard" }); },
+    onSuccess: async (session) => {
+      await updateSession(queryClient, session);
+      await router.invalidate();
+      await navigate({ to: "/dashboard" });
+    },
   });
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {

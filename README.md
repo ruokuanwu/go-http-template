@@ -4,14 +4,14 @@
 
 ## 技术栈
 
-- 后端：Go 1.25.5、Gin、GORM、SQLite、Zap、samber/oops。
-- 前端：Bun 1.3.6、React、TypeScript、Vite、React Router、Zustand、TanStack Query、Tailwind CSS v4、shadcn/ui。
+- 后端：Go 1.25.5、Gin、GORM、SQLite、Zap、samber/oops、SCS、Argon2id。
+- 前端：Bun、React、TypeScript、Vite、TanStack Router、TanStack Query、Tailwind CSS v4。
 - shadcn/ui 组件源码保存在前端工程中，可直接修改。
 
 ## 环境要求
 
 - Go 1.25.5 或兼容版本。
-- Bun 1.3.6 或兼容版本。
+- Bun 1.4.2 或兼容版本（锁文件格式 v2）。
 - GCC 与 CGO：GORM SQLite 驱动使用 `go-sqlite3`，构建需要 C 编译器；不需要独立 SQLite 服务。
 - Make；容器部署另需 Docker Engine 与 Compose 插件。
 
@@ -28,6 +28,8 @@ make install
 ```bash
 make dev-api
 ```
+
+本地 HTTP 开发需要设置进程环境变量 `COOKIE_SECURE=false`（PowerShell：`$env:COOKIE_SECURE = "false"`）。默认值为 `true`，用于生产 HTTPS；仅修改 `.env` 不会影响 Go 进程。
 
 ```bash
 make dev-web
@@ -55,8 +57,33 @@ GIN_MODE=release ./bin/server
 | `WEB_DIR` | `web/dist` | 前端构建产物目录 |
 | `GIN_MODE` | Gin 默认模式 | 生产运行设置为 `release` |
 | `DEBUG` | `false` | 仅为 `true` 时注册 Swagger UI 与文档路由以及其他debug项 |
+| `COOKIE_SECURE` | `true` | 会话 Cookie 仅通过 HTTPS 发送；本地 HTTP 显式设为 `false` |
+| `SESSION_LIFETIME` | `168h` | 会话绝对有效期，必须为正时长 |
+| `SESSION_IDLE_TIMEOUT` | `24h` | 空闲有效期，必须为正且不超过绝对有效期 |
+| `AUTH_TRUSTED_ORIGINS` | 空 | 逗号分隔的可信 Origin；同源部署不需要填写 |
 
-首次启动自动迁移任务表。SQLite 文件不应提交到版本控制；停止服务后再复制数据库文件作为简单备份。修改后端监听端口时，也需调整前端 Vite 代理目标。
+首次启动自动迁移任务、用户及持久化会话表。SQLite 文件不应提交到版本控制；停止服务后再复制数据库文件作为简单备份。修改后端监听端口时，也需调整前端 Vite 代理目标。
+
+## 认证
+
+认证完全由 Go 提供，不需要 Better Auth 或额外的 Node.js 认证服务。前端使用统一 fetch 客户端及 TanStack Query 管理会话，保留原有登录、注册和 Dashboard 页面。
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/api/auth/register` | `{name,email,password}`；201，注册并自动登录 |
+| POST | `/api/auth/login` | `{email,password}`；200，登录 |
+| GET | `/api/auth/session` | 200，`data: {user:{id,name,email}}` 或未登录时 `data: null` |
+| POST | `/api/auth/logout` | 200，销毁当前会话并删除 Cookie |
+
+成功响应继续使用 `{code:0,message:"",data:...}`；失败仅返回 `{code,message}`。错误码：`30001` 未登录（401）、`30002` 邮箱或密码错误（401）、`30003` 邮箱冲突（409）、`30004` 来源不允许（403）、`30005` 请求过于频繁（429）。
+
+密码使用带随机盐的 Argon2id 哈希；邮箱去除首尾空白并统一小写。Session ID 在登录时轮换，会话保存在 SQLite，服务重启后仍有效。Cookie 使用 HttpOnly、SameSite=Lax，生产保持 Secure。Session 数据提交成功后才发布 API 响应，存储故障不会返回成功 JSON。
+
+写接口通过 Go 标准库 CrossOriginProtection 检查浏览器来源。Vite 代理保留 Host，同源开发无需关闭检查。登录和注册共享每 IP 每分钟 10 次限制，单进程同时最多执行 2 个认证请求；多实例生产部署应在网关补充统一限流，并正确配置可信反向代理，不能直接信任任意转发 IP。
+
+前端在登录、退出和会话失效时更新缓存与路由，退出清理私有查询。Todo API 保持原有公开行为，演示数据不改为用户私有数据。新增私有 API 时使用 `middleware.RequireAuth`；前端路由守卫不能替代服务端授权。
+
+测试覆盖注册、登录、重复邮箱、凭证错误、Session ID 轮换、重启恢复、退出撤销、过期、CSRF、限流和存储故障。Go 测试需要 CGO 与 C 编译器。
 
 ## 常用命令
 
@@ -68,7 +95,7 @@ GIN_MODE=release ./bin/server
 | `make dev-web` | 启动 Vite 开发服务 |
 | `make swagger` | 使用固定版本 Swaggo 生成接口文档 |
 | `make build` | TypeScript 检查、前端生产构建、Go 构建 |
-| `make test` | 执行 Go 测试命令；模板当前没有测试文件 |
+| `make test` | 执行 Go 测试，包括认证集成测试 |
 | `make check` | Go vet 与前端类型检查、构建 |
 | `make clean` | 删除构建产物，不删除数据库 |
 | `make docker-build` | 构建 Docker 镜像，默认标签为 `go-http-template:latest` |
@@ -175,7 +202,7 @@ web/src/
 
 页面组合业务模块，业务模块依赖通用组件和请求工具，通用层不反向依赖业务。TanStack Query 统一管理任务缓存、加载及错误状态；增删改成功后失效并刷新共享查询，概览与任务页复用同一份数据。查询默认缓存新鲜期 30 秒、失败不自动重试，界面提供手动重试。
 
-客户端跨组件共享状态统一使用 Zustand，按业务拆分 store，组件通过选择器订阅所需字段；局部状态保留在组件内，服务端数据由 TanStack Query 管理，不重复存入 store。主题偏好使用 Zustand 与 `localStorage`，兼容已有 `theme` 存储值；应用入口统一同步页面主题，跟随系统模式监听系统主题变化。本轮保留 Todo 原有功能，暂未加入标题编辑、搜索筛选、认证或权限。资源目录在有实际资源时再创建，不预建空目录。
+认证与服务端会话由 TanStack Query 管理，局部状态保留在组件内；Dashboard 主题通过 Context 和 `localStorage` 管理。当前支持邮箱密码注册、登录和退出，尚未提供 OAuth、邮箱验证、密码找回或角色权限管理。Todo API 保留原有公开行为。资源目录在有实际资源时再创建，不预建空目录。
 
 调用关系：HTTP → controller → service → repository → SQLite。数据访问接口定义在使用方 service 中；未添加无用途的通用工具层。
 
